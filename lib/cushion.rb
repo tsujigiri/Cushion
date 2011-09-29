@@ -61,7 +61,6 @@ class Cushion < HashWithIndifferentAccess
       @revision = response['rev']
     else
       response = post('/' << document_uri[:database], self)
-      puts response.inspect
       @id = response['id']
       @revision = response['rev']
     end
