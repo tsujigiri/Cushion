@@ -13,7 +13,7 @@ class Cushion < HashWithIndifferentAccess
       uri = args.shift
     end
     if uri.nil?
-      if self.class.ancestors.include?(Cushion)
+      if self.class.ancestors[1..-1].include?(Cushion)
         uri = '/' << self.class.name.underscore.pluralize
       else
         raise "No database URI given"
@@ -26,19 +26,26 @@ class Cushion < HashWithIndifferentAccess
 
   def document_location uri = nil
     return @document_location unless uri
-    uri =~ /(http:\/\/)?(\w+)?:?([0-9]+)?\/(\w+)(\/(\w+))?/
+    uri =~ /(http:\/\/)?([^:\/\?]+)?(:([0-9]+))?\/(\w+)(\/(\w+))?/
 
-    self.class.server [ $2 || 'localhost', $3 || 5984 ]
+    self.class.server [ $2 || 'localhost', $4 ? $4.to_i : 5984 ]
     @document_location            = {}
-    @document_location[:database] = $4
-    @id                           = $6
+    @document_location[:database] = $5
+    @id                           = $7
     @document_location[:uri]      = "/#{@document_location[:database]}/#{@id}" if @id
   end
 
-  def create_database
-    database_uri = "/#{document_location[:database]}"
-    self.class.put(database_uri) unless self.class.get(database_uri)['db_name']
-    @database_created = true
+  def self.create_database uri
+    put(uri) unless get(uri)['db_name']
+    database_created true
+  end
+
+  def self.database_created true_or_false = nil
+    if [ true, false ].include?(true_or_false)
+      @database_created = true_or_false
+    else
+      @database_created
+    end
   end
 
   def revision
@@ -54,15 +61,20 @@ class Cushion < HashWithIndifferentAccess
   end
 
   def save
-    create_database unless @database_created
+    unless self.class.database_created
+      self.class.create_database('/' << document_location[:database])
+    end
     if @id.present?
-      response = self.class.put(document_location[:uri], self)
+      copy = @revision ? self.merge(_rev: @revision) : self.dup
+      response = self.class.put(document_location[:uri], copy)
       @revision = response['rev']
     else
       response = self.class.post('/' << document_location[:database], self)
       @id = response['id']
       @revision = response['rev']
+      @document_location[:uri] = "/#{@document_location[:database]}/#{@id}"
     end
+    @revision
   end
 
   class << self

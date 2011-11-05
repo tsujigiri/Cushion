@@ -16,6 +16,7 @@ Gem::Specification.new do |s|
 
   s.add_development_dependency 'test-unit'
   s.add_development_dependency 'shoulda'
+  s.add_development_dependency 'ruby-debug19'
   s.add_runtime_dependency 'active_support'
   s.require_paths = ['lib']
 end

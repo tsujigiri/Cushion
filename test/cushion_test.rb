@@ -11,11 +11,25 @@ class CushionTest < Test::Unit::TestCase
       @doc = Cushion.new(@doc_uri, { foo: "bar", test: "data" })
     end
 
-    should "create a document" do
-      @doc.save
+    should "save a document with an explicit id" do
+      revision = @doc.save
       doc = Cushion.new(@doc_uri)
+      assert_equal nil, doc[:foo]
       doc.load
       assert_equal "bar", doc[:foo]
+      assert_equal 'test_doc', @doc.id
+      new_revision = revision.to_i + 1
+      assert_match /#{new_revision}-[0-9a-f]{32}/, @doc.save
+    end
+
+    should "save a document without an explicit id" do
+      doc = FooCushion.new(foo: "bar")
+      assert_equal({ database: "foo_cushions" }, doc.document_location)
+      assert revision = doc.save
+      assert_match /\A\/foo_cushions\/[0-9a-f]{32}\Z/, doc.document_location[:uri]
+      assert id = doc.id
+      new_revision = revision.to_i + 1
+      assert_match /#{new_revision}-[0-9a-f]{32}/, doc.save
     end
 
     should "convert to JSON like a hash" do
@@ -25,6 +39,18 @@ class CushionTest < Test::Unit::TestCase
     should "find the important parts in the given uri" do
       @doc.document_location "/foo"
       assert_equal "foo", @doc.document_location[:database]
+      assert_equal [ 'localhost', 5984 ], @doc.class.server
+      @doc.document_location "http://example.com/foo"
+      assert_equal "foo", @doc.document_location[:database]
+      assert_equal [ 'example.com', 5984 ], @doc.class.server
+      @doc.document_location "http://example.com:1234/foo"
+      assert_equal "foo", @doc.document_location[:database]
+      assert_equal [ 'example.com', 1234 ], @doc.class.server
+      @doc.document_location "/foo/bar"
+      assert_equal "foo", @doc.document_location[:database]
+      assert_equal "/foo/bar", @doc.document_location[:uri]
+      assert_equal [ 'localhost', 5984 ], @doc.class.server
+      assert_equal 'bar', @doc.id
     end
 
     should "take the database name from the class name when inherited" do
