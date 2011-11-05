@@ -23,13 +23,13 @@ class CushionTest < Test::Unit::TestCase
     end
 
     should "find the important parts in the given uri" do
-      @doc.document_uri "/foo"
-      assert_equal "foo", @doc.document_uri[:database]
+      @doc.document_location "/foo"
+      assert_equal "foo", @doc.document_location[:database]
     end
 
     should "take the database name from the class name when inherited" do
       foo = FooCushion.new
-      assert_equal "foo_cushions", foo.document_uri[:database]
+      assert_equal "foo_cushions", foo.document_location[:database]
     end
   end
 end

@@ -19,24 +19,24 @@ class Cushion < HashWithIndifferentAccess
         raise "No database URI given"
       end
     end
-    document_uri uri
+    document_location uri
     data = args.shift
     super(data, &block)
   end
 
-  def document_uri uri = nil
-    return @document_uri unless uri
+  def document_location uri = nil
+    return @document_location unless uri
     uri =~ /(http:\/\/)?(\w+)?:?([0-9]+)?\/(\w+)(\/(\w+))?/
 
     self.class.server [ $2 || 'localhost', $3 || 5984 ]
-    @document_uri = {}
-    @document_uri[:database] = $4
-    @id                      = $6
-    @document_uri[:uri]      = "/#{@document_uri[:database]}/#{@id}" if @id
+    @document_location            = {}
+    @document_location[:database] = $4
+    @id                           = $6
+    @document_location[:uri]      = "/#{@document_location[:database]}/#{@id}" if @id
   end
 
   def create_database
-    database_uri = "/#{document_uri[:database]}"
+    database_uri = "/#{document_location[:database]}"
     self.class.put(database_uri) unless self.class.get(database_uri)['db_name']
     @database_created = true
   end
@@ -50,16 +50,16 @@ class Cushion < HashWithIndifferentAccess
   end
 
   def load
-    replace(self.class.get(document_uri[:uri]))
+    replace(self.class.get(document_location[:uri]))
   end
 
   def save
     create_database unless @database_created
     if @id.present?
-      response = self.class.put(document_uri[:uri], self)
+      response = self.class.put(document_location[:uri], self)
       @revision = response['rev']
     else
-      response = self.class.post('/' << document_uri[:database], self)
+      response = self.class.post('/' << document_location[:database], self)
       @id = response['id']
       @revision = response['rev']
     end
