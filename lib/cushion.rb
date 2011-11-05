@@ -28,9 +28,8 @@ class Cushion < HashWithIndifferentAccess
     return @document_uri unless uri
     uri =~ /(http:\/\/)?(\w+)?:?([0-9]+)?\/(\w+)(\/(\w+))?/
 
-    @document_uri = { host: $2 || 'localhost',
-                      port: $3 || 5984 }
-
+    self.class.server [ $2 || 'localhost', $3 || 5984 ]
+    @document_uri = {}
     @document_uri[:database] = $4
     @id                      = $6
     @document_uri[:uri]      = "/#{@document_uri[:database]}/#{@id}" if @id
@@ -38,7 +37,7 @@ class Cushion < HashWithIndifferentAccess
 
   def create_database
     database_uri = "/#{document_uri[:database]}"
-    put(database_uri) unless get(database_uri)['db_name']
+    self.class.put(database_uri) unless self.class.get(database_uri)['db_name']
     @database_created = true
   end
 
@@ -51,46 +50,52 @@ class Cushion < HashWithIndifferentAccess
   end
 
   def load
-    replace(get)
+    replace(self.class.get(document_uri[:uri]))
   end
 
   def save
     create_database unless @database_created
     if @id.present?
-      response = put(document_uri[:uri], self)
+      response = self.class.put(document_uri[:uri], self)
       @revision = response['rev']
     else
-      response = post('/' << document_uri[:database], self)
+      response = self.class.post('/' << document_uri[:database], self)
       @id = response['id']
       @revision = response['rev']
     end
   end
 
-  def get uri = document_uri[:uri]
-    JSON.parse(request(Net::HTTP::Get.new(uri)).body)
-  end
+  class << self
+    def server host_and_port = nil
+      host_and_port.present? ? @server = host_and_port : @server
+    end
 
-  def put uri = document_uri[:uri], data = nil
-    req = Net::HTTP::Put.new(uri)
-    req["content-type"] = "application/json"
-    req.body = data.to_json if data.present?
-    JSON.parse(request(req).body)
-  end
-
-  def post uri = document_uri[:uri], data = nil
-    req = Net::HTTP::Post.new(uri)
-    req["content-type"] = "application/json"
-    req.body = data.to_json if data.present?
-    JSON.parse(request(req).body)
-  end
-
-  def delete uri = document_uri[:uri]
-    JSON.parse(request(Net::HTTP::Delete.new(uri)).body)
-  end
-
-  private
-
-  def request(req)
-    Net::HTTP.start(document_uri[:host], document_uri[:port]) { |http| http.request(req) }
+    def get uri
+      JSON.parse(request(Net::HTTP::Get.new(uri)).body)
+    end
+ 
+    def put uri, data = nil
+      req = Net::HTTP::Put.new(uri)
+      req["content-type"] = "application/json"
+      req.body = data.to_json if data.present?
+      JSON.parse(request(req).body)
+    end
+ 
+    def post uri, data = nil
+      req = Net::HTTP::Post.new(uri)
+      req["content-type"] = "application/json"
+      req.body = data.to_json if data.present?
+      JSON.parse(request(req).body)
+    end
+ 
+    def delete uri
+      JSON.parse(request(Net::HTTP::Delete.new(uri)).body)
+    end
+ 
+    private
+ 
+    def request(req)
+      Net::HTTP.start(*server) { |http| http.request(req) }
+    end
   end
 end

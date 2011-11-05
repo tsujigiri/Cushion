@@ -1,6 +1,6 @@
 require 'rubygems'
 require 'bundler'
-Bundler.require(:default, :test)
+Bundler.require(:default, :development)
 require_relative '../lib/cushion'
 
 class CushionTest < Test::Unit::TestCase
