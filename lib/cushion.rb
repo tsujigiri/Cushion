@@ -8,6 +8,9 @@ require 'active_support/core_ext/string/inflections'
 require 'active_support/core_ext/object'
 
 class Cushion < HashWithIndifferentAccess
+
+  attr_accessor :id
+
   def initialize(*args, &block)
     if args[0].is_a?(String)
       uri = args.shift
@@ -31,8 +34,8 @@ class Cushion < HashWithIndifferentAccess
     self.class.server [ $2 || 'localhost', $4 ? $4.to_i : 5984 ]
     @document_location            = {}
     @document_location[:database] = $5
-    @id                           = $7
-    @document_location[:uri]      = "/#{@document_location[:database]}/#{@id}" if @id
+    self.id                       = $7
+    @document_location[:uri]      = "/#{@document_location[:database]}/#{id}" if id
   end
 
   def self.create_database uri
@@ -52,10 +55,6 @@ class Cushion < HashWithIndifferentAccess
     @revision
   end
 
-  def id
-    @id
-  end
-
   def load
     replace(self.class.get(document_location[:uri]))
   end
@@ -64,15 +63,15 @@ class Cushion < HashWithIndifferentAccess
     unless self.class.database_created
       self.class.create_database('/' << document_location[:database])
     end
-    if @id.present?
+    if id.present?
       copy = @revision ? self.merge(_rev: @revision) : self.dup
       response = self.class.put(document_location[:uri], copy)
       @revision = response['rev']
     else
       response = self.class.post('/' << document_location[:database], self)
-      @id = response['id']
+      self.id = response['id']
       @revision = response['rev']
-      @document_location[:uri] = "/#{@document_location[:database]}/#{@id}"
+      @document_location[:uri] = "/#{@document_location[:database]}/#{id}"
     end
     @revision
   end
