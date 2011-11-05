@@ -56,7 +56,10 @@ class Cushion < HashWithIndifferentAccess
   end
 
   def load
-    replace(self.class.get(document_location[:uri]))
+    doc = self.class.get(document_location[:uri])
+    self.id = doc.delete('_id')
+    @revision = doc.delete('_rev')
+    replace doc
   end
 
   def save

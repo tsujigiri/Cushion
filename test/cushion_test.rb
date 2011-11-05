@@ -16,6 +16,8 @@ class CushionTest < Test::Unit::TestCase
       doc = Cushion.new(@doc_uri)
       assert_equal nil, doc[:foo]
       doc.load
+      assert_nil doc[:_id]
+      assert_nil doc[:_rev]
       assert_equal "bar", doc[:foo]
       assert_equal 'test_doc', @doc.id
       new_revision = revision.to_i + 1
