@@ -3,7 +3,7 @@ $:.push File.expand_path('../lib', __FILE__)
 
 Gem::Specification.new do |s|
   s.name        = 'cushion'
-  s.version     = '0.0.4'
+  s.version     = '0.0.5'
   s.authors     = ['Helge Rausch']
   s.email       = ['helge@rausch.io']
   s.homepage    = 'https://github.com/tsujigiri/cushion'
